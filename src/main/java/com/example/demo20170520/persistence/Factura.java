@@ -1,10 +1,16 @@
-package com.example.demo20170520.model;
+package com.example.demo20170520.persistence;
 
+import com.example.demo20170520.model.FacturaCommand;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.validator.constraints.NotBlank;
+import org.springframework.beans.BeanUtils;
 import org.springframework.format.annotation.DateTimeFormat;
 
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Past;
@@ -15,9 +21,12 @@ import java.util.Date;
 /**
  * Created by domix on 5/20/17.
  */
-@Setter
+@Entity
 @Getter
-public class FacturaCommand {
+@Setter
+public class Factura {
+  @Id
+  @GeneratedValue(strategy = GenerationType.AUTO)
   private Long id;
   @NotNull
   @Past
@@ -37,4 +46,18 @@ public class FacturaCommand {
   private BigDecimal igv;
   @NotBlank
   private String concepto;
+
+  public static Factura from(FacturaCommand command) {
+    Factura factura = new Factura();
+    BeanUtils.copyProperties(command, factura);
+
+    return factura;
+  }
+
+  public static FacturaCommand from(Factura factura) {
+    FacturaCommand command = new FacturaCommand();
+    BeanUtils.copyProperties(factura, command);
+
+    return command;
+  }
 }

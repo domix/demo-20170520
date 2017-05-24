@@ -1,7 +1,12 @@
 package com.example.demo20170520.business.impl
 
+import com.example.demo20170520.business.FacturaBusinessException
+import com.example.demo20170520.business.ValidacionService
+import com.example.demo20170520.business.ValidationException
 import com.example.demo20170520.model.FacturaCommand
-import spock.lang.Ignore
+import com.example.demo20170520.persistence.Factura
+import com.example.demo20170520.persistence.FacturaRepository
+import org.springframework.beans.BeanUtils
 import spock.lang.Specification
 
 /**
@@ -11,7 +16,8 @@ class FacturaServiceImplSpec extends Specification {
 
   def 'deberia guardar una factura con el camino feliz'() {
     given:
-      FacturaServiceImpl service = new FacturaServiceImpl()
+      ValidacionService validacionService = Mock()
+      FacturaRepository facturaRepository = Stub()
       FacturaCommand command = new FacturaCommand(
         fecha: new Date(),
         ruc: '12345678901',
@@ -22,14 +28,25 @@ class FacturaServiceImplSpec extends Specification {
         concepto: 'Un producto'
       )
 
-      def factura = service.guardarFactura(command)
+      facturaRepository.save(_) >> {
+        Factura factura = new Factura()
+        BeanUtils.copyProperties(command, factura)
+        factura.id = 1L
+        return factura
+      }
+      FacturaServiceImpl service = new FacturaServiceImpl(validacionService, facturaRepository)
+
+
+      FacturaCommand factura = service.guardarFactura(command)
     expect:
       factura
   }
 
   def 'deberia fallar al enviar una factura en NULL'() {
     when:
-      FacturaServiceImpl service = new FacturaServiceImpl()
+      ValidacionService validacionService = Mock()
+      FacturaRepository facturaRepository = Mock()
+      FacturaServiceImpl service = new FacturaServiceImpl(validacionService, facturaRepository)
       service.guardarFactura(null)
     then:
       IllegalArgumentException error = thrown()
@@ -39,7 +56,9 @@ class FacturaServiceImplSpec extends Specification {
 
   def 'deberia fallar al intentar guardar una factura con los montos incorrectos'() {
     when:
-      FacturaServiceImpl service = new FacturaServiceImpl()
+      ValidacionService validacionService = Mock()
+      FacturaRepository facturaRepository = Mock()
+      FacturaServiceImpl service = new FacturaServiceImpl(validacionService, facturaRepository)
       FacturaCommand command = new FacturaCommand(
         fecha: new Date(),
         ruc: '12345678901',
@@ -52,7 +71,9 @@ class FacturaServiceImplSpec extends Specification {
 
       service.guardarFactura(command)
     then:
-      RuntimeException error = thrown()
+      FacturaBusinessException error = thrown()
       error.message == FacturaServiceImpl.ERROR_MONTO
+      error.factura
+      println error.factura.dump()
   }
 }
